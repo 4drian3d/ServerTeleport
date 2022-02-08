@@ -6,7 +6,7 @@
 
     <groupId>net.teamfruit</groupId>
     <artifactId>serverteleport</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.1</version>
     <packaging>jar</packaging>
 
     <name>ServerTeleport</name>
