@@ -11,6 +11,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import org.slf4j.Logger;
 
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ServerTeleportCommand implements SimpleCommand {
     private final ProxyServer proxy;
@@ -67,18 +69,21 @@ public class ServerTeleportCommand implements SimpleCommand {
         if (args.length <= 1){
             List<String> list = new ArrayList<>();
             list.add("@a");
-            list.addAll(this.proxy.getAllServers().stream().map(sv -> "#"+sv.getServerInfo().getName()).collect(Collectors.toList()));
-            list.addAll(this.proxy.getAllPlayers().stream().map(Player::getUsername).collect(Collectors.toList()));
+            list.addAll(this.getRegularCompletions());
             return CompletableFuture.completedFuture(list);
         }
         // Destination Suggestion
         if (args.length == 2){
-            List<String> list = new ArrayList<>();
-            list.addAll(this.proxy.getAllServers().stream().map(sv -> "#"+sv.getServerInfo().getName()).collect(Collectors.toList()));
-            list.addAll(this.proxy.getAllPlayers().stream().map(Player::getUsername).collect(Collectors.toList()));
-            return CompletableFuture.supplyAsync(() -> candidate(args[0], list));
+            return CompletableFuture.supplyAsync(() -> candidate(args[0], this.getRegularCompletions()));
         }
         return CompletableFuture.completedFuture(Collections.emptyList());
+    }
+
+    private List<String> getRegularCompletions(){
+        return Stream.concat(
+            this.proxy.getAllServers().stream().map(sv -> "#"+sv.getServerInfo().getName()),
+            this.proxy.getAllPlayers().stream().map(Player::getUsername)
+        ).collect(Collectors.toList());
     }
 
     @Override
@@ -134,7 +139,7 @@ public class ServerTeleportCommand implements SimpleCommand {
                     .thenApply(Result::isSuccessful)
                     .thenAccept(result -> warnResult(player.getUsername(), dst.getServerInfo().getName(), result));
             } else {
-
+                source.sendMessage(Component.text(String.format("Player %s has not been found", srcArg)));
             }
         }
     }
