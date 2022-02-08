@@ -1,10 +1,9 @@
 lobby-server = "hub"
 
 [lang]
-prefix = "§d[ServerTP] "
-usage = "§a/stp <from:player|#server|@a> <to:player|#server>"
-noserver = "§aNo server to teleport"
-nopermission = "§cNo permission"
-player-num = "§a%d players"
-player-name = "§a%s"
-success = "§aTeleporting %s to %s..."
+prefix = "&d[ServerTP] "
+usage = "&a/stp <from:player|#server|@a> <to:player|#server>"
+noserver = "&aNo server to teleport"
+player-num = "&a%d players"
+player-name = "&a%s"
+success = "&aTeleporting %s to %s..."

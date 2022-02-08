@@ -2,13 +2,13 @@ package net.teamfruit.serverteleport;
 
 import com.google.inject.Inject;
 import com.moandjiezana.toml.Toml;
-import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import org.slf4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -21,62 +21,47 @@ import java.nio.file.Path;
         authors = {"Kamesuta"}
 )
 public class ServerTeleport {
-    private final ProxyServer server;
+    private final ProxyServer proxy;
     private final Logger logger;
+    private final Path folderPath;
 
-    private Toml loadConfig(Path path) {
-        File folder = path.toFile();
-        File file = new File(folder, "config.toml");
-        if (!file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
+    private Toml loadConfig() {
+        if (!Files.exists(folderPath)) {
+            try{
+                Files.createDirectory(folderPath);
+            } catch(IOException e){
+                e.printStackTrace();
+                return null;
+            }
         }
+        final Path file = folderPath.resolve("config.toml");
 
-        if (!file.exists()) {
-            try {
-                InputStream input = this.getClass().getResourceAsStream("/" + file.getName());
-                Throwable t = null;
-
-                try {
-                    if (input != null) {
-                        Files.copy(input, file.toPath());
-                    } else {
-                        file.createNewFile();
-                    }
-                } catch (Throwable e) {
-                    t = e;
-                    throw e;
-                } finally {
-                    if (input != null) {
-                        if (t != null) {
-                            try {
-                                input.close();
-                            } catch (Throwable ex) {
-                                t.addSuppressed(ex);
-                            }
-                        } else {
-                            input.close();
-                        }
-                    }
-                }
+        if (!Files.exists(file)) {
+            try (InputStream input = this.getClass().getClassLoader().getResourceAsStream("config.toml")) {
+                Files.copy(input, file);
             } catch (IOException e) {
                 e.printStackTrace();
                 return null;
             }
         }
 
-        return (new Toml()).read(file);
+        return new Toml().read(file.toFile());
     }
 
     @Inject
-    public ServerTeleport(ProxyServer server, CommandManager commandManager, Logger logger, @DataDirectory Path folder) {
-        this.server = server;
+    public ServerTeleport(ProxyServer proxy, Logger logger, @DataDirectory Path folder) {
+        this.proxy = proxy;
         this.logger = logger;
+        this.folderPath = folder;
+    }
 
-        Toml toml = this.loadConfig(folder);
+    @Subscribe
+    public void onProxyInitialization(ProxyInitializeEvent event){
+        Toml toml = this.loadConfig();
         if (toml == null) {
             logger.warn("Failed to load config.toml. Shutting down.");
         } else {
-            commandManager.register(new ServerTeleportCommand(server, toml), "stp", "servertp");
+            proxy.getCommandManager().register("servertp", new ServerTeleportCommand(proxy, toml, logger), "stp");
             logger.info("Plugin has enabled!");
         }
     }
